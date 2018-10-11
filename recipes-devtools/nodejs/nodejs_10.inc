@@ -8,13 +8,12 @@ LICENSE = "MIT"
 #COMPATIBLE_MACHINE_mips64 = "(!.*mips64).*"
 
 INC_PR = "r1"
-PR = "${INC_PR}.8"
+PR = "${INC_PR}.4"
 
 PROVIDES = "node"
 RPROVIDES_${PN} = "node"
 
-SRC_URI = "https://nodejs.org/dist/v${PV}/node-v${PV}.tar.gz;name=src \
-           file://no-registry_6.x.patch"
+SRC_URI = "https://nodejs.org/dist/v${PV}/node-v${PV}.tar.gz;name=src"
 
 S = "${WORKDIR}/node-v${PV}"
 
@@ -30,29 +29,36 @@ ARCHFLAGS_arm = "${@bb.utils.contains('TUNE_FEATURES', 'callconvention-hard', '-
                     '--with-arm-fpu=vfp', d), d), d)}"
 ARCHFLAGS ?= ""
 
+CROSSCONF = "--cross-compiling"
+CROSSCONF_virtclass-native ="--no-cross-compiling"
+
 GYP_DEFINES_append_mipsel = " mips_arch_variant='r1' "
 
 PACKAGECONFIG ??= "zlib openssl"
 
 PACKAGECONFIG[zlib] = "--shared-zlib,,zlib,"
-PACKAGECONFIG[openssl] = "--shared-openssl,,openssl,"
+# PACKAGECONFIG[openssl] = "--shared-openssl,,openssl,"
 PACKAGECONFIG[v8-inspector] = ",--without-inspector,,"
 
 DISABLE_STATIC = ""
 
+export CXX_host = "${BUILD_CXX}"
+export CC_host = "${BUILD_CC}"
+export CXXFLAGS_host = "${BUILD_CXXFLAGS}"
+export CFLAGS_host = "${BUILD_CFLAGS}"
+
 do_configure () {
-  export LD="${CXX}"
   GYP_DEFINES="${GYP_DEFINES}" export GYP_DEFINES
   ./configure	--prefix="${prefix}" \
 		--dest-cpu="${@nodejs_map_dest_cpu(d.getVar('TARGET_ARCH', True), d)}" \
 		--dest-os=linux ${ARCHFLAGS} \
-		--without-snapshot \
 		--with-intl=none \
+		--without-snapshot \
+		${CROSSCONF} \
 		${PACKAGECONFIG_CONFARGS}
 }
 
 do_compile () {
-  export LD="${CXX}"
   oe_runmake BUILDTYPE=Release
 }
 
